@@ -6,6 +6,8 @@
  * decides what to do with the values (apply / persist / upload).
  */
 
+import { isAstraLoaded } from '../../../utils.js';
+
 export const DEFAULT_STATE = Object.freeze({
     targets: ['page'],          // 'page' and/or 'chat'
     fit: 'cover',
@@ -181,6 +183,23 @@ export class BackgroundPopover {
         `;
         document.body.appendChild(el);
         this.el = el;
+
+        if (isAstraLoaded()) {
+            const astraFields = ['opacity', 'blur', 'brightness'];
+            for (const field of astraFields) {
+                const row = el.querySelector(`input[data-field="${field}"]`)?.closest('.uishortcuts-bg-row');
+                if (!row) continue;
+                row.classList.add('uishortcuts-bg-row--disabled');
+                const input = row.querySelector('input');
+                if (input) input.disabled = true;
+            }
+            const note = document.createElement('div');
+            note.className = 'uishortcuts-bg-astra-note';
+            note.textContent = 'Opacity, blur & brightness are managed by Astra';
+            const body = el.querySelector('.uishortcuts-bg-popover-body');
+            body.appendChild(note);
+        }
+
         this._bindControls();
     }
 

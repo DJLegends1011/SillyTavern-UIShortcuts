@@ -209,3 +209,19 @@
 .uishortcuts-bg-popover-status.uishortcuts-bg-status-err {
     color: #e74c3c;
 }
+
+/* ========================================
+   ASTRA COMPAT — disabled slider rows
+   ======================================== */
+.uishortcuts-bg-row--disabled {
+    opacity: 0.35;
+    pointer-events: none;
+    user-select: none;
+}
+
+.uishortcuts-bg-astra-note {
+    font-size: 0.68rem;
+    font-style: italic;
+    color: var(--SmartThemeQuoteColor, #4a9eff);
+    padding: 4px 0 2px;
+}

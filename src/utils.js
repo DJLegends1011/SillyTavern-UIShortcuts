@@ -104,6 +104,14 @@ export async function fetchWithCsrf(url, options = {}) {
 }
 
 /**
+ * Check if AstraProjecta extension is active.
+ * Astra adds a body class when its runtime mounts.
+ */
+export function isAstraLoaded() {
+    return document.body.classList.contains('astra-projecta-base-ui-body');
+}
+
+/**
  * Log a message with extension prefix
  * @param {string} message - The message to log
  * @param {string} level - Log level (log, warn, error)
