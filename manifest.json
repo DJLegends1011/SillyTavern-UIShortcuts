@@ -5,5 +5,11 @@
     "license": "AGPL-3.0",
     "description": "Miscellaneous UI changes and enhancements for SillyTavern, including an enhanced avatar gallery selector with Gelbooru image search.",
     "js": "index.js",
-    "css": "styles.css"
+    "css": "styles.css",
+    "tt_permissions": {
+        "network": [
+            "https://gelbooru.com/**",
+            "https://*.gelbooru.com/**"
+        ]
+    }
 }

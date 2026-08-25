@@ -4,8 +4,7 @@
  */
 
 import { EXTENSION_DIR, fetchWithCsrf, log } from '../../../utils.js';
-
-const PLUGIN_BASE = '/api/plugins/uishortcuts-helper';
+import { applyMediaSrc, gelbooruFetch } from './transport.js';
 
 // Rating tag map for Gelbooru API
 const RATING_TAGS = {
@@ -107,15 +106,15 @@ export class GelbooruSearch {
     }
 
     /**
-     * Wrap a Gelbooru CDN URL in the server stream proxy.
+     * Point an element at a Gelbooru CDN URL.
      * Gelbooru enforces Referer-based hotlink protection: loading a CDN URL
-     * directly via <img src> from ST's origin gets 302'd to hotlink.php. The
-     * proxy re-fetches with Referer: gelbooru.com and streams the bytes back
-     * from our own origin. Returns '' for a falsy url.
+     * directly via <img src> gets 302'd to hotlink.php. The transport re-fetches
+     * with Referer: gelbooru.com — through the helper plugin on upstream
+     * SillyTavern, or through the host's permissioned HTTP client on
+     * TauriTavern. Clears the element for a falsy url.
      */
-    _proxyImageUrl(url) {
-        if (!url) return '';
-        return `${PLUGIN_BASE}/gelbooru/stream?url=${encodeURIComponent(url)}`;
+    _applyImageSrc(element, url, options) {
+        applyMediaSrc(element, url, options);
     }
 
     /**
@@ -371,7 +370,7 @@ export class GelbooruSearch {
                 );
                 throw new Error('Gelbooru API credentials not configured');
             }
-            const response = await fetchWithCsrf(`${PLUGIN_BASE}/gelbooru/search`, {
+            const response = await gelbooruFetch('/gelbooru/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -473,7 +472,7 @@ export class GelbooruSearch {
             const img = document.createElement('img');
             // Use preview URL (small thumbnail) for grid, routed through the
             // stream proxy. Gelbooru now blocks direct hotlinked CDN access.
-            img.src = this._proxyImageUrl(post.preview_url || post.sample_url || post.file_url || '');
+            this._applyImageSrc(img, post.preview_url || post.sample_url || post.file_url || '');
             img.alt = `Post ${post.id}`;
             img.loading = 'lazy';
 
@@ -570,7 +569,7 @@ export class GelbooruSearch {
             if (fullUrl) {
                 // Try streaming endpoint first (fast), fall back to base64 download
                 try {
-                    const streamResp = await fetchWithCsrf(`${PLUGIN_BASE}/gelbooru/stream?url=${encodeURIComponent(fullUrl)}`, {
+                    const streamResp = await gelbooruFetch(`/gelbooru/stream?url=${encodeURIComponent(fullUrl)}`, {
                         signal: controller.signal,
                     });
                     if (controller.signal.aborted) return;
@@ -587,7 +586,7 @@ export class GelbooruSearch {
                     if (err.name === 'AbortError') return;
                     // Fallback: download as base64 via POST proxy
                     try {
-                        const dlResp = await fetchWithCsrf(`${PLUGIN_BASE}/gelbooru/download`, {
+                        const dlResp = await gelbooruFetch('/gelbooru/download', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ url: fullUrl }),
@@ -621,7 +620,7 @@ export class GelbooruSearch {
 
             // Show thumbnail at full opacity, stretched to fill frame.
             // Routed through the proxy since direct CDN hotlinks are blocked.
-            img.src = this._proxyImageUrl(post.preview_url || '');
+            this._applyImageSrc(img, post.preview_url || '');
             img.style.opacity = '1';
             img.classList.add('loading-preview');
             loader.style.display = 'flex';
@@ -630,7 +629,7 @@ export class GelbooruSearch {
             const fullUrl = post.file_url || post.sample_url || '';
             if (fullUrl) {
                 try {
-                    const dlResp = await fetchWithCsrf(`${PLUGIN_BASE}/gelbooru/download`, {
+                    const dlResp = await gelbooruFetch('/gelbooru/download', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url: fullUrl }),
@@ -746,7 +745,7 @@ export class GelbooruSearch {
             if (!imageUrl) throw new Error('No image URL available');
 
             // Download via server proxy
-            const dlResponse = await fetchWithCsrf(`${PLUGIN_BASE}/gelbooru/download`, {
+            const dlResponse = await gelbooruFetch('/gelbooru/download', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: imageUrl }),
@@ -836,7 +835,7 @@ export class GelbooruSearch {
         this._acController = new AbortController();
 
         try {
-            const response = await fetchWithCsrf(`${PLUGIN_BASE}/gelbooru/tags`, {
+            const response = await gelbooruFetch('/gelbooru/tags', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ term, limit: 10, apiKey: this.apiKey, userId: this.userId }),

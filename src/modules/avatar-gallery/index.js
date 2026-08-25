@@ -12,6 +12,7 @@ import {
     fetchWithCsrf,
     log 
 } from '../../utils.js';
+import { hasNativeTransport } from './gelbooru/transport.js';
 
 // Optional sub-modules — loaded dynamically so the gallery works standalone
 let GelbooruSearch = null;
@@ -1519,6 +1520,20 @@ export const definition = {
                 const banner = container.querySelector('.uishortcuts-plugin-banner');
                 const fields = container.querySelector('.uishortcuts-gelbooru-fields');
                 if (!banner || !fields) return;
+
+                // On TauriTavern the manifest's tt_permissions.network grant
+                // replaces the helper plugin entirely, so there is nothing to
+                // install and nothing to probe.
+                if (hasNativeTransport()) {
+                    banner.classList.remove('uishortcuts-hidden');
+                    banner.classList.add('uishortcuts-plugin-ok');
+                    banner.querySelector('i').className = 'fa-solid fa-circle-check';
+                    banner.querySelector('strong').textContent = 'Native network access granted';
+                    banner.querySelector('span').textContent =
+                        'TauriTavern is proxying Gelbooru requests through the host. No server plugin needed.';
+                    fields.classList.remove('uishortcuts-fields-disabled');
+                    return;
+                }
 
                 let available = false;
                 try {

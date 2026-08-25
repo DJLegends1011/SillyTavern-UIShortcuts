@@ -14,7 +14,31 @@ SillyTavern/data/<user>/extensions/third-party/SillyTavern-UIShortcuts/
 
 Restart SillyTavern or refresh the page. The extension loads automatically.
 
-### Server Plugin (optional, needed only for Gelbooru search)
+### Gelbooru search: network access
+
+Gelbooru's API sends no CORS headers and its CDN enforces Referer-based hotlink
+protection, so the browser cannot call it from the extension directly. How that
+is solved depends on which host you run:
+
+#### TauriTavern — nothing to install
+
+The extension declares the origins it needs in `manifest.json`:
+
+```json
+"tt_permissions": {
+    "network": ["https://gelbooru.com/**", "https://*.gelbooru.com/**"]
+}
+```
+
+TauriTavern reads that declaration and routes only those requests through its
+native HTTP client, which is not a browser and therefore has no CORS constraint.
+**The `uishortcuts-helper` server plugin is not needed and is not used** — there
+is no Node runtime to run it in. The Gelbooru settings panel will say "Native
+network access granted" once the permission is active.
+
+Requests to any origin the manifest does not declare are refused by the host.
+
+#### Upstream SillyTavern — server plugin (optional, Gelbooru search only)
 
 The `uishortcuts-helper/` folder is a SillyTavern server plugin that proxies requests to Gelbooru (bypassing CORS/CDN restrictions). To enable it:
 
@@ -81,7 +105,7 @@ SillyTavern-UIShortcuts/
 │       ├── drag-drop-blocker/            # Image drop interceptor
 │       ├── prompt-groups/                # Collapsible prompt manager groups
 │       └── swipe-aggregator/             # Combine swipes into a new swipe
-└── uishortcuts-helper/                   # Server plugin (symlink to ST plugins/)
+└── uishortcuts-helper/                   # Server plugin (upstream ST only; unused on TauriTavern)
     ├── index.js                          # Express router: Gelbooru proxy routes
     └── package.json                      # Plugin metadata
 ```
