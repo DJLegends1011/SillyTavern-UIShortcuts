@@ -1,7 +1,7 @@
 /**
  * Character Tagline Module
- * Reads tagline from chub or chartavern character extensions and displays it
- * in the character management panel (position configurable in settings).
+ * Reads the tagline from any provider namespace under character.data.extensions
+ * and displays it in the character management panel (position configurable in settings).
  */
 
 import { log, getSTContext } from '../../utils.js';
@@ -21,7 +21,15 @@ function _getPosition() {
 
 function _getTagline(char) {
     const ext = char?.data?.extensions;
-    return ext?.chub?.tagline || ext?.chartavern?.tagline || ext?.cl?.tagline || null;
+    if (!ext) return null;
+    // CharacterLibrary writes the tagline under the linked provider's id (janitorai, wyvern,
+    // botbooru, ...) and only falls back to 'cl' when unlinked, so scan every namespace
+    // rather than enumerating them. Known sources keep priority.
+    return ext.chub?.tagline
+        || ext.chartavern?.tagline
+        || ext.cl?.tagline
+        || Object.values(ext).find(v => typeof v?.tagline === 'string' && v.tagline)?.tagline
+        || null;
 }
 
 export class CharTagline {
@@ -129,7 +137,7 @@ export function initCharTagline() {
 export const definition = {
     key: 'charTagline',
     label: 'Character Tagline',
-    description: "Shows the Chub/CharacterTavern tagline in the character management panel.",
+    description: "Shows the character's tagline (Chub, CharacterTavern, CharacterLibrary and other providers) in the character management panel.",
     init: initCharTagline,
     settings: {
         defaults: {
