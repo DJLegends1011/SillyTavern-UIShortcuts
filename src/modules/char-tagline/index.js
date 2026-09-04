@@ -27,6 +27,12 @@ const ALLOWED_ATTR = ['class', 'style', 'color', 'size', 'align', 'title'];
 
 const HTML_RE = /<[a-z][\s\S]*>/i;
 
+const CLASS_CLAMPED = 'uishortcuts-char-tagline--clamped';
+const CLASS_EXPANDED = 'uishortcuts-char-tagline--expanded';
+// Sub-pixel line heights make scrollHeight overshoot clientHeight by a fraction on content
+// that actually fits; a couple of pixels of slack avoids clamping those.
+const CLAMP_TOLERANCE_PX = 2;
+
 function _getPosition() {
     const ctx = getSTContext();
     return ctx?.extensionSettings?.UIShortcuts?.charTagline?.position || 'below-name';
@@ -149,6 +155,39 @@ export class CharTagline {
 
         el.classList.toggle('uishortcuts-char-tagline--rich', _getRichText() && HTML_RE.test(tagline));
         _setContent(el, tagline);
+        this._applyClamp(el);
+    }
+
+    /**
+     * Collapse an over-long tagline to a few lines, click to expand. The clamp class is
+     * added first and dropped again if the content turns out to fit, so short taglines
+     * never get the pointer cursor or the fade.
+     */
+    _applyClamp(el) {
+        el.classList.remove(CLASS_EXPANDED);
+        el.classList.add(CLASS_CLAMPED);
+        el.title = '';
+
+        // Bind per element, not per instance: _render() re-creates the div on a position change.
+        if (el.dataset.clampBound !== '1') {
+            el.dataset.clampBound = '1';
+            el.addEventListener('click', (e) => {
+                const node = e.currentTarget;
+                if (!node.classList.contains(CLASS_CLAMPED)) return;
+                const expanded = node.classList.toggle(CLASS_EXPANDED);
+                node.title = expanded ? 'Click to collapse' : 'Click to expand';
+            });
+        }
+
+        // Measure after layout, or scrollHeight is read before the new content is laid out.
+        requestAnimationFrame(() => {
+            if (!el.isConnected) return;
+            if (el.scrollHeight <= el.clientHeight + CLAMP_TOLERANCE_PX) {
+                el.classList.remove(CLASS_CLAMPED);
+            } else {
+                el.title = 'Click to expand';
+            }
+        });
     }
 
     _remove() {
