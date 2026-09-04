@@ -53,7 +53,7 @@ export async function init(router) {
 
             if (!response.ok) {
                 const hint = response.status === 401
-                    ? ' — Gelbooru currently requires API credentials. Get a free API key at https://gelbooru.com/index.php?page=account&s=options'
+                    ? '. Gelbooru currently requires API credentials. Get a free API key at https://gelbooru.com/index.php?page=account&s=options'
                     : '';
                 return res.status(response.status).json({
                     error: `Gelbooru returned ${response.status}: ${response.statusText}${hint}`,
@@ -102,7 +102,7 @@ export async function init(router) {
 
             // Cloudflare may return 200 with HTML challenge instead of the image
             if (contentType.startsWith('text/')) {
-                console.error('[UIShortcuts] Gelbooru CDN returned text instead of image — likely blocked by Cloudflare');
+                console.error('[UIShortcuts] Gelbooru CDN returned text instead of image, likely blocked by Cloudflare');
                 return res.status(502).json({
                     error: 'Gelbooru CDN returned a challenge page instead of the image',
                 });
@@ -154,6 +154,10 @@ export async function init(router) {
             if (ct) res.setHeader('Content-Type', ct);
             const cl = response.headers.get('content-length');
             if (cl) res.setHeader('Content-Length', cl);
+            // Gelbooru CDN URLs are md5-addressed and immutable, so let the
+            // browser cache them and avoid re-proxying grid thumbnails on
+            // every page flip.
+            res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
 
             // Buffer and send (reliable across Node versions)
             const arrayBuf = await response.arrayBuffer();
@@ -208,7 +212,7 @@ export async function init(router) {
         }
     });
 
-    console.log('[UIShortcuts] Server plugin loaded — Gelbooru proxy routes registered');
+    console.log('[UIShortcuts] Server plugin loaded. Gelbooru proxy routes registered');
 }
 
 export async function exit() {

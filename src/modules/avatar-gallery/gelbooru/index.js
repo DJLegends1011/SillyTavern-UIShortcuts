@@ -107,6 +107,18 @@ export class GelbooruSearch {
     }
 
     /**
+     * Wrap a Gelbooru CDN URL in the server stream proxy.
+     * Gelbooru enforces Referer-based hotlink protection: loading a CDN URL
+     * directly via <img src> from ST's origin gets 302'd to hotlink.php. The
+     * proxy re-fetches with Referer: gelbooru.com and streams the bytes back
+     * from our own origin. Returns '' for a falsy url.
+     */
+    _proxyImageUrl(url) {
+        if (!url) return '';
+        return `${PLUGIN_BASE}/gelbooru/stream?url=${encodeURIComponent(url)}`;
+    }
+
+    /**
      * Build the Gelbooru tab content DOM and append it into the gallery panel.
      * Called once from the gallery's createPanel().
      */
@@ -459,8 +471,9 @@ export class GelbooruSearch {
             item.title = (post.tags || '').substring(0, 120);
 
             const img = document.createElement('img');
-            // Use preview URL (small thumbnail) for grid
-            img.src = post.preview_url || post.sample_url || post.file_url || '';
+            // Use preview URL (small thumbnail) for grid, routed through the
+            // stream proxy. Gelbooru now blocks direct hotlinked CDN access.
+            img.src = this._proxyImageUrl(post.preview_url || post.sample_url || post.file_url || '');
             img.alt = `Post ${post.id}`;
             img.loading = 'lazy';
 
@@ -606,8 +619,9 @@ export class GelbooruSearch {
             // Image post: show thumbnail immediately, upgrade to full-res
             img.style.display = '';
 
-            // Show thumbnail at full opacity, stretched to fill frame
-            img.src = post.preview_url || '';
+            // Show thumbnail at full opacity, stretched to fill frame.
+            // Routed through the proxy since direct CDN hotlinks are blocked.
+            img.src = this._proxyImageUrl(post.preview_url || '');
             img.style.opacity = '1';
             img.classList.add('loading-preview');
             loader.style.display = 'flex';
@@ -716,7 +730,7 @@ export class GelbooruSearch {
 
         const gallery = this.gallery;
         if (!gallery.currentCharacter) {
-            log('No character selected — cannot save image', 'warn');
+            log('No character selected, cannot save image', 'warn');
             return;
         }
 
@@ -834,7 +848,7 @@ export class GelbooruSearch {
             const tags = Array.isArray(data?.tag) ? data.tag : (Array.isArray(data) ? data : []);
             this._showAutocomplete(tags, term);
         } catch {
-            // Aborted or failed — ignore
+            // Aborted or failed, ignore
         }
     }
 

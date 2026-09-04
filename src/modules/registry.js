@@ -15,6 +15,7 @@ export default [
     'prompt-groups',
     'char-tagline',
     'alt-greeting-inserter',
+    'swipe-aggregator',
     'chat-cleaner',
     'background-keepalive',
     'stream-pulse',
