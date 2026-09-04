@@ -54,7 +54,7 @@ Organizes the Prompt Manager list into collapsible groups and sub-groups using c
 
 ### Character Tagline
 
-Displays the character's tagline from Chub or CharacterTavern card data in the character management panel. Position is configurable: below the character name (default) or above Creator's Notes.
+Displays the character's tagline from card data in the character management panel. Reads any provider namespace under `data.extensions` — Chub, CharacterTavern, and every CharacterLibrary provider (janitorai, wyvern, botbooru, ...). Position is configurable: below the character name (default) or above Creator's Notes. Taglines that contain HTML (common on Chub cards) are rendered through DOMPurify so the author's colors and formatting show; turn off **Render tagline formatting** to display them as plain text instead. Over-long taglines collapse to a few lines with a fade; click to expand.
 
 ### Swipe Aggregator
 
@@ -76,7 +76,7 @@ SillyTavern-UIShortcuts/
 │   ├── settings.js                       # Settings persistence + Extensions panel UI
 │   └── modules/
 │       ├── avatar-gallery/               # Gallery panel + Gelbooru integration
-│       ├── char-tagline/                 # Chub/CharacterTavern tagline display
+│       ├── char-tagline/                 # Card tagline display (any provider)
 │       ├── css-snippets/                 # Runtime CSS snippet manager
 │       ├── drag-drop-blocker/            # Image drop interceptor
 │       ├── prompt-groups/                # Collapsible prompt manager groups

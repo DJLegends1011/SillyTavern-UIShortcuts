@@ -22,6 +22,72 @@
     border-radius: 0 4px 4px 0;
     line-height: 1.4;
     word-break: break-word;
+    /* The panel is a flex column; without this the block gets shrunk and clipped mid-line. */
+    flex: 0 0 auto;
+}
+
+/* Some authors write a creator-notes-length "tagline". Collapse those to a few lines
+   with a click to expand, rather than letting them push the panel around. The class is
+   applied only when the content actually overflows. */
+.uishortcuts-char-tagline--clamped {
+    position: relative;
+    max-height: 5.6em;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.uishortcuts-char-tagline--clamped::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2em;
+    background: linear-gradient(to bottom, transparent, var(--SmartThemeBlurTintColor, rgba(26, 26, 26, 0.9)));
+    pointer-events: none;
+}
+
+.uishortcuts-char-tagline--expanded {
+    max-height: none;
+    overflow: visible;
+    cursor: pointer;
+}
+
+.uishortcuts-char-tagline--expanded::after {
+    display: none;
+}
+
+/* Rich taglines carry author markup (headings, centered paragraphs, colored spans).
+   Neutralise the sizing so a creator-notes-sized blob can't take over the panel,
+   but leave the author's colors and alignment alone. */
+.uishortcuts-char-tagline--rich {
+    font-style: normal;
+}
+
+.uishortcuts-char-tagline--rich > *:first-child { margin-top: 0; }
+.uishortcuts-char-tagline--rich > *:last-child { margin-bottom: 0; }
+
+.uishortcuts-char-tagline--rich p,
+.uishortcuts-char-tagline--rich h1,
+.uishortcuts-char-tagline--rich h2,
+.uishortcuts-char-tagline--rich h3,
+.uishortcuts-char-tagline--rich h4,
+.uishortcuts-char-tagline--rich h5,
+.uishortcuts-char-tagline--rich h6 {
+    margin: 0.35em 0;
+    font-size: 1em;
+    line-height: 1.4;
+}
+
+.uishortcuts-char-tagline--rich h1,
+.uishortcuts-char-tagline--rich h2,
+.uishortcuts-char-tagline--rich h3 {
+    font-size: 1.05em;
+    letter-spacing: 0.02em;
+}
+
+.uishortcuts-char-tagline--rich ul,
+.uishortcuts-char-tagline--rich ol {
+    margin: 0.35em 0;
+    padding-left: 1.2em;
 }
 
 /* ========================================
