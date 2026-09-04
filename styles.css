@@ -24,6 +24,42 @@
     word-break: break-word;
 }
 
+/* Rich taglines carry author markup (headings, centered paragraphs, colored spans).
+   Neutralise the sizing so a creator-notes-sized blob can't take over the panel,
+   but leave the author's colors and alignment alone. */
+.uishortcuts-char-tagline--rich {
+    font-style: normal;
+    overflow: hidden;
+}
+
+.uishortcuts-char-tagline--rich > *:first-child { margin-top: 0; }
+.uishortcuts-char-tagline--rich > *:last-child { margin-bottom: 0; }
+
+.uishortcuts-char-tagline--rich p,
+.uishortcuts-char-tagline--rich h1,
+.uishortcuts-char-tagline--rich h2,
+.uishortcuts-char-tagline--rich h3,
+.uishortcuts-char-tagline--rich h4,
+.uishortcuts-char-tagline--rich h5,
+.uishortcuts-char-tagline--rich h6 {
+    margin: 0.35em 0;
+    font-size: 1em;
+    line-height: 1.4;
+}
+
+.uishortcuts-char-tagline--rich h1,
+.uishortcuts-char-tagline--rich h2,
+.uishortcuts-char-tagline--rich h3 {
+    font-size: 1.05em;
+    letter-spacing: 0.02em;
+}
+
+.uishortcuts-char-tagline--rich ul,
+.uishortcuts-char-tagline--rich ol {
+    margin: 0.35em 0;
+    padding-left: 1.2em;
+}
+
 /* ========================================
     CSS VARIABLES (Mapped from SmartTheme)
     ======================================== */

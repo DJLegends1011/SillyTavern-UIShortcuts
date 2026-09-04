@@ -54,7 +54,7 @@ Organizes the Prompt Manager list into collapsible groups and sub-groups using c
 
 ### Character Tagline
 
-Displays the character's tagline from card data in the character management panel. Reads any provider namespace under `data.extensions` — Chub, CharacterTavern, and every CharacterLibrary provider (janitorai, wyvern, botbooru, ...). Position is configurable: below the character name (default) or above Creator's Notes.
+Displays the character's tagline from card data in the character management panel. Reads any provider namespace under `data.extensions` — Chub, CharacterTavern, and every CharacterLibrary provider (janitorai, wyvern, botbooru, ...). Position is configurable: below the character name (default) or above Creator's Notes. Taglines that contain HTML (common on Chub cards) are rendered through DOMPurify so the author's colors and formatting show; turn off **Render tagline formatting** to display them as plain text instead.
 
 ### Swipe Aggregator
 

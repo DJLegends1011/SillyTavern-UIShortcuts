@@ -2,6 +2,8 @@
  * Character Tagline Module
  * Reads the tagline from any provider namespace under character.data.extensions
  * and displays it in the character management panel (position configurable in settings).
+ * Taglines authored on Chub/CharacterTavern routinely carry inline HTML, so the value is
+ * rendered through DOMPurify when rich text is on and shown as plain text otherwise.
  */
 
 import { log, getSTContext } from '../../utils.js';
@@ -14,9 +16,25 @@ const POSITIONS = {
     'above-notes': { target: '#spoiler_free_desc', method: 'before' },
 };
 
+// Formatting a card author may use in a tagline. Anything that executes, loads a remote
+// resource, or takes input is left out; DOMPurify strips the rest with the event handlers.
+const ALLOWED_TAGS = [
+    'p', 'br', 'hr', 'div', 'span', 'strong', 'b', 'em', 'i', 'u', 's', 'del',
+    'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'center', 'font', 'small', 'sub', 'sup',
+];
+const ALLOWED_ATTR = ['class', 'style', 'color', 'size', 'align', 'title'];
+
+const HTML_RE = /<[a-z][\s\S]*>/i;
+
 function _getPosition() {
     const ctx = getSTContext();
     return ctx?.extensionSettings?.UIShortcuts?.charTagline?.position || 'below-name';
+}
+
+function _getRichText() {
+    const ctx = getSTContext();
+    return ctx?.extensionSettings?.UIShortcuts?.charTagline?.richText !== false;
 }
 
 function _getTagline(char) {
@@ -30,6 +48,30 @@ function _getTagline(char) {
         || ext.cl?.tagline
         || Object.values(ext).find(v => typeof v?.tagline === 'string' && v.tagline)?.tagline
         || null;
+}
+
+function _setContent(el, tagline) {
+    // Plain taglines and the rich-text-off case never touch innerHTML.
+    if (!_getRichText() || !HTML_RE.test(tagline)) {
+        el.textContent = tagline;
+        return;
+    }
+
+    // Fail closed: with no sanitizer available the card's markup is shown as text, not injected.
+    const purify = globalThis.DOMPurify;
+    if (typeof purify?.sanitize !== 'function') {
+        el.textContent = tagline;
+        return;
+    }
+
+    el.innerHTML = purify.sanitize(tagline, {
+        ALLOWED_TAGS,
+        ALLOWED_ATTR,
+        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'select', 'textarea', 'style', 'link', 'img', 'a'],
+        FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'href', 'src'],
+        ALLOW_UNKNOWN_PROTOCOLS: false,
+        KEEP_CONTENT: true,
+    });
 }
 
 export class CharTagline {
@@ -105,7 +147,8 @@ export class CharTagline {
             }
         }
 
-        el.textContent = tagline;
+        el.classList.toggle('uishortcuts-char-tagline--rich', _getRichText() && HTML_RE.test(tagline));
+        _setContent(el, tagline);
     }
 
     _remove() {
@@ -142,6 +185,7 @@ export const definition = {
     settings: {
         defaults: {
             position: 'below-name',
+            richText: true,
         },
         render: (values) => `
             <label class="uishortcuts-setting-label" style="margin:0; display:flex; align-items:center; gap:6px;">
@@ -150,6 +194,10 @@ export const definition = {
                     <option value="below-name" ${values.position !== 'above-notes' ? 'selected' : ''}>Below character name</option>
                     <option value="above-notes" ${values.position === 'above-notes' ? 'selected' : ''}>Above Creator's Notes</option>
                 </select>
+            </label>
+            <label class="uishortcuts-setting-label" style="margin:6px 0 0; display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" data-key="richText" ${values.richText !== false ? 'checked' : ''}>
+                Render tagline formatting (colors, bold, headings)
             </label>
         `,
     },
