@@ -104,11 +104,13 @@ export async function fetchWithCsrf(url, options = {}) {
 }
 
 /**
- * Check if AstraProjecta extension is active.
- * Astra adds a body class when its runtime mounts.
+ * Astra scopes its native background appearance to the active mobile layout.
+ * Its base UI token class alone does not indicate ownership of native styling.
  */
+export const ASTRA_LAYOUT_CLASS = 'astra-projecta-mobile-layout';
+
 export function isAstraLoaded() {
-    return document.body.classList.contains('astra-projecta-base-ui-body');
+    return document.body.classList.contains(ASTRA_LAYOUT_CLASS);
 }
 
 /**

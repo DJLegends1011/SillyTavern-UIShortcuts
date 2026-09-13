@@ -16,7 +16,7 @@
  *   }
  */
 
-import { isAstraLoaded } from '../../../utils.js';
+import { ASTRA_LAYOUT_CLASS } from '../../../utils.js';
 
 const STYLE_ID = 'uishortcuts-bg-styles';
 const CHAT_LAYER_ID = 'uishortcuts-chat-bg-layer';
@@ -31,25 +31,21 @@ const FIT_TO_BG_SIZE = {
     tile:    { size: 'auto',    repeat: 'repeat'    },
 };
 
-function buildStylesheet(astra) {
-    const pageFilter = astra
-        ? ''
-        : `filter: blur(var(--uishortcuts-bg-page-blur, 0px))
-            brightness(var(--uishortcuts-bg-page-brightness, 1)) !important;`;
-
-    const chatAppearance = astra
-        ? ''
-        : `opacity: var(--uishortcuts-bg-chat-opacity, 1);
-    filter: blur(var(--uishortcuts-bg-chat-blur, 0px))
-            brightness(var(--uishortcuts-bg-chat-brightness, 1));`;
-
-    return `
+const STYLESHEET = `
 #bg1.${BG_OVERRIDE_CLASS} {
     background-image: var(--uishortcuts-bg-page-image) !important;
     background-size: var(--uishortcuts-bg-page-size, cover) !important;
     background-repeat: var(--uishortcuts-bg-page-repeat, no-repeat) !important;
     background-position: center !important;
-    ${pageFilter}
+    filter: blur(var(--uishortcuts-bg-page-blur, 0px))
+            brightness(var(--uishortcuts-bg-page-brightness, 1)) !important;
+}
+
+/* Resolve layout changes in CSS, including Astra mounting after this module.
+   Astra owns page blur/opacity; brightness remains a UI Shortcuts control. */
+body.${ASTRA_LAYOUT_CLASS} #bg1.${BG_OVERRIDE_CLASS} {
+    filter: blur(var(--astra-chat-bg-blur, 2px))
+            brightness(var(--uishortcuts-bg-page-brightness, 1)) !important;
 }
 
 #chat.${CHAT_HOST_CLASS} {
@@ -65,7 +61,9 @@ function buildStylesheet(astra) {
     background-size: var(--uishortcuts-bg-chat-size, cover);
     background-repeat: var(--uishortcuts-bg-chat-repeat, no-repeat);
     background-position: center;
-    ${chatAppearance}
+    opacity: var(--uishortcuts-bg-chat-opacity, 1);
+    filter: blur(var(--uishortcuts-bg-chat-blur, 0px))
+            brightness(var(--uishortcuts-bg-chat-brightness, 1));
 }
 
 #chat.${CHAT_HOST_CLASS} > *:not(#${CHAT_LAYER_ID}) {
@@ -73,7 +71,6 @@ function buildStylesheet(astra) {
     z-index: 1;
 }
 `;
-}
 
 export class BackgroundApplier {
     constructor() {
@@ -87,7 +84,7 @@ export class BackgroundApplier {
         if (document.getElementById(STYLE_ID)) return;
         const style = document.createElement('style');
         style.id = STYLE_ID;
-        style.textContent = buildStylesheet(isAstraLoaded());
+        style.textContent = STYLESHEET;
         document.head.appendChild(style);
         this._styleEl = style;
     }
@@ -129,7 +126,6 @@ export class BackgroundApplier {
 
         const cssUrl = `url("${state.src.replace(/"/g, '\\"')}")`;
         const fit = FIT_TO_BG_SIZE[state.fit] || FIT_TO_BG_SIZE.cover;
-        const astra = isAstraLoaded();
         const opacity = clamp(state.opacity ?? 1, 0, 1);
         const blurPx = Math.max(0, state.blur ?? 0);
         const brightness = clamp(state.brightness ?? 1, 0, 2);
@@ -142,10 +138,8 @@ export class BackgroundApplier {
             root.style.setProperty('--uishortcuts-bg-page-image', cssUrl);
             root.style.setProperty('--uishortcuts-bg-page-size', fit.size);
             root.style.setProperty('--uishortcuts-bg-page-repeat', fit.repeat);
-            if (!astra) {
-                root.style.setProperty('--uishortcuts-bg-page-blur', `${blurPx}px`);
-                root.style.setProperty('--uishortcuts-bg-page-brightness', String(brightness));
-            }
+            root.style.setProperty('--uishortcuts-bg-page-blur', `${blurPx}px`);
+            root.style.setProperty('--uishortcuts-bg-page-brightness', String(brightness));
             bg1.classList.add(BG_OVERRIDE_CLASS);
         } else if (bg1) {
             bg1.classList.remove(BG_OVERRIDE_CLASS);
@@ -158,11 +152,9 @@ export class BackgroundApplier {
             root.style.setProperty('--uishortcuts-bg-chat-image', cssUrl);
             root.style.setProperty('--uishortcuts-bg-chat-size', fit.size);
             root.style.setProperty('--uishortcuts-bg-chat-repeat', fit.repeat);
-            if (!astra) {
-                root.style.setProperty('--uishortcuts-bg-chat-opacity', String(opacity));
-                root.style.setProperty('--uishortcuts-bg-chat-blur', `${blurPx}px`);
-                root.style.setProperty('--uishortcuts-bg-chat-brightness', String(brightness));
-            }
+            root.style.setProperty('--uishortcuts-bg-chat-opacity', String(opacity));
+            root.style.setProperty('--uishortcuts-bg-chat-blur', `${blurPx}px`);
+            root.style.setProperty('--uishortcuts-bg-chat-brightness', String(brightness));
         } else {
             this._removeChatLayer();
             this._clearChatVars();

@@ -37,6 +37,7 @@ export class BackgroundPopover {
         this.state = { ...DEFAULT_STATE };
         this.prevSnapshot = null;       // restore-on-cancel snapshot
         this._docClickHandler = null;
+        this._astraObserver = null;
     }
 
     isOpen() {
@@ -58,6 +59,9 @@ export class BackgroundPopover {
         this._position();
 
         this.el.classList.add('open');
+        this._astraObserver?.disconnect();
+        this._astraObserver = new MutationObserver(() => this._syncAstraControls());
+        this._astraObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
         // Outside-click closes (treated as cancel).
         this._docClickHandler = (e) => {
@@ -73,6 +77,8 @@ export class BackgroundPopover {
     /** Close without applying — restores prior state via the parent. */
     cancel() {
         if (!this.el) return;
+        this._astraObserver?.disconnect();
+        this._astraObserver = null;
         this.el.classList.remove('open');
         if (this._docClickHandler) {
             document.removeEventListener('mousedown', this._docClickHandler, true);
@@ -85,6 +91,8 @@ export class BackgroundPopover {
 
     close() {
         if (!this.el) return;
+        this._astraObserver?.disconnect();
+        this._astraObserver = null;
         this.el.classList.remove('open');
         if (this._docClickHandler) {
             document.removeEventListener('mousedown', this._docClickHandler, true);
@@ -94,6 +102,8 @@ export class BackgroundPopover {
     }
 
     destroy() {
+        this._astraObserver?.disconnect();
+        this._astraObserver = null;
         if (this._docClickHandler) {
             document.removeEventListener('mousedown', this._docClickHandler, true);
             this._docClickHandler = null;
@@ -184,23 +194,28 @@ export class BackgroundPopover {
         document.body.appendChild(el);
         this.el = el;
 
-        if (isAstraLoaded()) {
-            const astraFields = ['opacity', 'blur', 'brightness'];
-            for (const field of astraFields) {
-                const row = el.querySelector(`input[data-field="${field}"]`)?.closest('.uishortcuts-bg-row');
-                if (!row) continue;
-                row.classList.add('uishortcuts-bg-row--disabled');
-                const input = row.querySelector('input');
-                if (input) input.disabled = true;
-            }
-            const note = document.createElement('div');
-            note.className = 'uishortcuts-bg-astra-note';
-            note.textContent = 'Opacity, blur & brightness are managed by Astra';
-            const body = el.querySelector('.uishortcuts-bg-popover-body');
-            body.appendChild(note);
-        }
+        const note = document.createElement('div');
+        note.className = 'uishortcuts-bg-astra-note';
+        note.hidden = true;
+        el.querySelector('.uishortcuts-bg-popover-body').appendChild(note);
 
         this._bindControls();
+    }
+
+    _syncAstraControls() {
+        if (!this.el) return;
+        const astra = isAstraLoaded();
+        const hasChat = this.state.targets.includes('chat');
+        for (const field of ['opacity', 'blur']) {
+            const input = this.el.querySelector(`input[data-field="${field}"]`);
+            input.disabled = astra && !hasChat;
+            input.closest('.uishortcuts-bg-row').classList.toggle('uishortcuts-bg-row--disabled', input.disabled);
+        }
+        const note = this.el.querySelector('.uishortcuts-bg-astra-note');
+        note.hidden = !astra || !this.state.targets.includes('page');
+        note.textContent = hasChat
+            ? 'Astra manages page blur and opacity. These sliders affect the chat panel.'
+            : 'Page blur and opacity are managed by Astra.';
     }
 
     _bindControls() {
@@ -212,6 +227,7 @@ export class BackgroundPopover {
                 const targets = Array.from(el.querySelectorAll('input[type="checkbox"][data-target]:checked'))
                     .map(c => c.dataset.target);
                 this.state.targets = targets;
+                this._syncAstraControls();
                 this._emitPreview();
             });
         });
@@ -286,6 +302,7 @@ export class BackgroundPopover {
         el.querySelector('[data-readout="blur"]').textContent = `${Math.round(this.state.blur)}px`;
         el.querySelector('input[data-field="brightness"]').value = String(this.state.brightness);
         el.querySelector('[data-readout="brightness"]').textContent = Number(this.state.brightness).toFixed(2);
+        this._syncAstraControls();
         this._setStatus('', '');
     }
 
